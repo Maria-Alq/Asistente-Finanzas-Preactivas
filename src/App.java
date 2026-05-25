@@ -7,61 +7,59 @@ public class App {
         System.out.println(" INICIANDO ASISTENTE FINANCIERO PREACTIVO");
         System.out.println("=================================================\n");
 
-        // 1. Inicializar el archivo de base de datos y crear las tablas
+        // 1. Inicializar la base de datos vacía
         ConexionSQLite.crearTablas();
-
-        // 2. Configurar el escenario de prueba (Simulamos un mes con problemas)
-        prepararEscenarioDePrueba();
-
-        // 3. Instanciar el cerebro de nuestra app
+        prepararEscenarioVacio(); // Limpiamos la base de datos
+        
         LogicaFinanciera logica = new LogicaFinanciera();
 
-        System.out.println("\n[SIMULACIÓN] -> Ganaste $20.00 en tu trabajo diario.");
-        System.out.println("Presionando el botón [+] para registrar el ingreso...\n");
+        // ---------------------------------------------------------
+        // SIMULACIÓN 1: EL DÍA QUE SE DESCARGA LA APP (ONBOARDING)
+        // ---------------------------------------------------------
+        System.out.println("[SIMULACIÓN 1] -> Día de instalación de la app.");
+        // Digamos que el usuario tiene $150 en su tarjeta de débito y $300 en ahorros
+        logica.configurarOnboardingInicial(150.00, 300.00);
 
-        // 4. Ejecutar el registro
+        // ---------------------------------------------------------
+        // SIMULACIÓN 2: UN GASTO HORMIGA EN EL PRESENTE
+        // ---------------------------------------------------------
+        System.out.println("\n[SIMULACIÓN 2] -> Te compraste un café y unas galletas ($5.50).");
+        System.out.println("Presionando el botón [-] para registrar el gasto...");
+        
+        // Parámetros: Monto ($5.50), Categoría (1 = Comida/Colación), Cuenta (1 = Banco A)
+        logica.registrarGastoDiario(5.50, 1, 1);
+
+        // ---------------------------------------------------------
+        // SIMULACIÓN 3: INGRESO DIARIO (MODO ACUMULADOR O CONTINGENCIA)
+        // ---------------------------------------------------------
+        System.out.println("\n[SIMULACIÓN 3] -> Recibiste tu ganancia diaria de $20.00.");
         logica.registrarIngresoDiario(20.00);
 
         System.out.println("\n=================================================");
-        System.out.println(" PRUEBA FINALIZADA");
+        System.out.println(" PRUEBAS DEL CEREBRO FINALIZADAS");
         System.out.println("=================================================");
     }
 
-    /**
-     * Este método inyecta datos falsos a la base de datos para simular
-     * que el usuario se quedó con $0.00 en la comida del mes presente.
-     */
-    private static void prepararEscenarioDePrueba() {
-        // Consultas SQL para limpiar pruebas anteriores y crear datos nuevos
+    private static void prepararEscenarioVacio() {
         String limpiarCategorias = "DELETE FROM Categorias_Gasto;";
         String limpiarCuentas = "DELETE FROM Cuentas_Bancarias;";
-
-        // Insertamos dos cuentas bancarias reales
+        
+        // Creamos las estructuras básicas vacías
         String insertCuentas = "INSERT INTO Cuentas_Bancarias (id_cuenta, nombre_banco, saldo_real) VALUES " +
-                               "(1, 'Banco A - Uso Diario', 50.00), " +
-                               "(2, 'Banco B - Ahorros', 100.00);";
+                               "(1, 'Banco A - Uso Diario', 0.00), " +
+                               "(2, 'Banco B - Ahorros', 0.00);";
 
-        // CASO CRÍTICO: La comida del presente está en 0.00 (Falta dinero hoy)
+        // Dejamos la comida lista para probar (Con $100 de presupuesto para hoy)
         String insertComida = "INSERT INTO Categorias_Gasto (id_categoria, nombre, meta_mensual_requerida, acumulado_futuro, disponible_presente, id_cuenta_asociada) VALUES " +
-                              "(1, 'Comida', 150.00, 50.00, 0.00, 1);";
+                              "(1, 'Comida y Colaciones', 150.00, 50.00, 100.00, 1);";
 
-        // CASO NORMAL: La luz está al día en el presente
-        String insertLuz = "INSERT INTO Categorias_Gasto (id_categoria, nombre, meta_mensual_requerida, acumulado_futuro, disponible_presente, id_cuenta_asociada) VALUES " +
-                           "(2, 'Luz', 40.00, 10.00, 40.00, 1);";
-
-        try (Connection conn = ConexionSQLite.conectar();
-             Statement stmt = conn.createStatement()) {
-            
+        try (Connection conn = ConexionSQLite.conectar(); Statement stmt = conn.createStatement()) {
             stmt.execute(limpiarCategorias);
             stmt.execute(limpiarCuentas);
             stmt.execute(insertCuentas);
             stmt.execute(insertComida);
-            stmt.execute(insertLuz);
-            
-            System.out.println(">> Escenario configurado: Tu presupuesto de 'Comida' actual está en $0.00.");
-            
         } catch (Exception e) {
-            System.out.println("Error configurando la prueba: " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
         }
     }
 }

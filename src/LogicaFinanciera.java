@@ -67,4 +67,74 @@ public class LogicaFinanciera {
             System.out.println("Error en la ejecución del algoritmo: " + e.getMessage());
         }
     }
+
+    // ==========================================
+    // NUEVA FUNCIÓN 1: EL ONBOARDING (PASO CERO)
+    // ==========================================
+    public void configurarOnboardingInicial(double saldoBancoA, double saldoBancoB) {
+        String sqlUpdateBanco = "UPDATE Cuentas_Bancarias SET saldo_real = ? WHERE id_cuenta = ?";
+        
+        try (Connection conn = ConexionSQLite.conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sqlUpdateBanco)) {
+
+            // Guardar saldo del Banco A (Uso Diario - ID 1)
+            pstmt.setDouble(1, saldoBancoA);
+            pstmt.setInt(2, 1);
+            pstmt.executeUpdate();
+
+            // Guardar saldo del Banco B (Ahorros - ID 2)
+            pstmt.setDouble(1, saldoBancoB);
+            pstmt.setInt(2, 2);
+            pstmt.executeUpdate();
+
+            System.out.println("✅ ONBOARDING EXITOSO: Se registraron tus saldos iniciales reales.");
+            System.out.println("   -> Banco A (Diario): $" + saldoBancoA);
+            System.out.println("   -> Banco B (Ahorros): $" + saldoBancoB);
+
+        } catch (SQLException e) {
+            System.out.println("Error en el Onboarding: " + e.getMessage());
+        }
+    }
+
+    // ==========================================
+    // NUEVA FUNCIÓN 2: REGISTRAR GASTO HORMIGA
+    // ==========================================
+    public void registrarGastoDiario(double montoGastado, int idCategoria, int idCuentaFisica) {
+        // 1. Restar del presupuesto disponible del mes presente
+        String sqlUpdateCat = "UPDATE Categorias_Gasto SET disponible_presente = disponible_presente - ? WHERE id_categoria = ?";
+        // 2. Restar físicamente del banco de donde salió la plata
+        String sqlUpdateCuenta = "UPDATE Cuentas_Bancarias SET saldo_real = saldo_real - ? WHERE id_cuenta = ?";
+        // 3. Dejar el registro en el historial
+        String sqlInsertLog = "INSERT INTO Registro_Transacciones (tipo, monto, id_categoria, id_cuenta) VALUES ('GASTO_DIARIO', ?, ?, ?)";
+
+        try (Connection conn = ConexionSQLite.conectar()) {
+            
+            // Restar de la Categoría
+            try (PreparedStatement pstmtCat = conn.prepareStatement(sqlUpdateCat)) {
+                pstmtCat.setDouble(1, montoGastado);
+                pstmtCat.setInt(2, idCategoria);
+                pstmtCat.executeUpdate();
+            }
+
+            // Restar de la Cuenta Bancaria
+            try (PreparedStatement pstmtCuenta = conn.prepareStatement(sqlUpdateCuenta)) {
+                pstmtCuenta.setDouble(1, montoGastado);
+                pstmtCuenta.setInt(2, idCuentaFisica);
+                pstmtCuenta.executeUpdate();
+            }
+
+            // Registrar Historial
+            try (PreparedStatement pstmtLog = conn.prepareStatement(sqlInsertLog)) {
+                pstmtLog.setDouble(1, montoGastado);
+                pstmtLog.setInt(2, idCategoria);
+                pstmtLog.setInt(3, idCuentaFisica);
+                pstmtLog.executeUpdate();
+            }
+
+            System.out.println("☕ GASTO REGISTRADO: Descontaste $" + montoGastado + " de tu presupuesto actual.");
+
+        } catch (SQLException e) {
+            System.out.println("Error registrando el gasto: " + e.getMessage());
+        }
+    }
 }
